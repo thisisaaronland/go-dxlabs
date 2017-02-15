@@ -1,5 +1,18 @@
 package main
 
+/*
+	This assumes:
+
+	* Data that has been indexed by github:whosonfirst/go-whosonfirst-tile38/cmd/wof-tile38-index.go
+
+	To do:
+
+	* Handle cursors/pagination (from Tile38)
+	* Use code on go-whosonfirst-tile38 (that still needs to be written) to convert Tile38
+	  responses in to something a little friendlier and/or GeoJSON like...
+	  
+*/
+
 import (
 	"flag"
 	"fmt"
