@@ -17,6 +17,7 @@ build:	fmt bin
 deps:
 	@GOPATH=$(GOPATH) go get -u "github.com/facebookgo/grace/gracehttp"
 	@GOPATH=$(GOPATH) go get -u "github.com/thisisaaronland/go-marc"
+	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-whosonfirst-tile38"
 
 vendor-deps: rmdeps deps
 	if test ! -d vendor; then mkdir vendor; fi
