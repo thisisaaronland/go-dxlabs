@@ -27,14 +27,6 @@ func main() {
 
 	t38_addr := fmt.Sprintf("%s:%d", *t38_host, *t38_port)
 
-	/*
-	t38_client, err := client.Dial(t38_addr)
-
-	if err != nil {
-	   log.Fatal(err)
-	}
-	*/
-	
 	handler := func(rsp http.ResponseWriter, req *http.Request) {
 
 		query := req.URL.Query()
@@ -134,7 +126,7 @@ func main() {
 		t38_url := fmt.Sprintf("http://%s/%s", t38_addr, url.QueryEscape(t38_cmd))
 
 		log.Println(t38_url)
-		
+
 		t38_rsp, err := http.Get(t38_url)
 
 		if err != nil {
