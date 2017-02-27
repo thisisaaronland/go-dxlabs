@@ -14,6 +14,7 @@ package main
 */
 
 import (
+       "encoding/json"
 	"flag"
 	"fmt"
 	"github.com/facebookgo/grace/gracehttp"
@@ -24,6 +25,35 @@ import (
 	"net/url"
 	"os"
 )
+
+
+type Tile38Coord struct {
+     Latitude float64 `json:"lat"`
+     Longitude float64 `json:"lon"`     
+}
+
+type Tile38Point struct {
+     ID string `json:"id"`
+     Point Tile38Coord `json:"point"`
+     Fields []interface{} `json:"fields"`
+}
+
+type Tile38Response struct {
+     Ok bool `json:"ok"`
+     Count int `json:"count"`
+     Cursor int `json:"cursor"`
+     Fields []string `json:"fields"`
+     Points []Tile38Point `json:"points"`
+}
+
+type WOFResponse struct {
+     Results []WOFResult `json:"results"`
+     Cursor  int `json:"cursor"`     
+}
+
+type WOFResult struct {
+     WOFID     int64 `json:"wof:id"`
+}
 
 func main() {
 
@@ -101,10 +131,32 @@ func main() {
 			return
 		}
 
+		var r Tile38Response
+		err = json.Unmarshal(results, &r)
+
+		if err != nil {
+			http.Error(rsp, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		wof_results := make([]WOFResult, 0)
+
+		for _, p := range r.Points {
+			wof_result := WOFResult{ int64(p.Fields[0].(float64)) }
+			wof_results = append(wof_results, wof_result)
+		}
+
+		wof_response := WOFResponse{
+			     Cursor: r.Cursor,
+			     Results: wof_results,
+		}
+
+		b, _ := json.Marshal(wof_response)
+		
 		rsp.Header().Set("Access-Control-Allow-Origin", "*")
 		rsp.Header().Set("Content-Type", "application/json")
 
-		rsp.Write(results)
+		rsp.Write(b)
 	}
 
 	endpoint := fmt.Sprintf("%s:%d", *host, *port)
