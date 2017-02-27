@@ -86,43 +86,45 @@ func main() {
 		nelat := bb.MaxY()
 		nelon := bb.MaxX()
 
+		// TO DO: CURSORS
+
 		t38_cmd := fmt.Sprintf("INTERSECTS %s POINTS BOUNDS %0.6f %0.6f %0.6f %0.6f", *t38_collection, swlat, swlon, nelat, nelon)
 		t38_url := fmt.Sprintf("http://%s/%s", t38_addr, url.QueryEscape(t38_cmd))
 
 		log.Println(t38_url)
 
-		t38_rsp, err := http.Get(t38_url)
+		http_rsp, err := http.Get(t38_url)
 
 		if err != nil {
 			http.Error(rsp, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		defer t38_rsp.Body.Close()
+		defer http_rsp.Body.Close()
 
-		results, err := ioutil.ReadAll(t38_rsp.Body)
-
-		if err != nil {
-			http.Error(rsp, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		var r tile38.Tile38Response
-		err = json.Unmarshal(results, &r)
+		results, err := ioutil.ReadAll(http_rsp.Body)
 
 		if err != nil {
 			http.Error(rsp, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		wof_response, err := whosonfirst.Tile38ResponseToWOFResponse(r)
+		var t38_rsp tile38.Tile38Response
+		err = json.Unmarshal(results, &t38_rsp)
 
 		if err != nil {
 			http.Error(rsp, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		b, err := json.Marshal(wof_response)
+		wof_rsp, err := whosonfirst.Tile38ResponseToWOFResponse(t38_rsp)
+
+		if err != nil {
+			http.Error(rsp, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		json_rsp, err := json.Marshal(wof_rsp)
 
 		if err != nil {
 			http.Error(rsp, err.Error(), http.StatusInternalServerError)
@@ -132,7 +134,7 @@ func main() {
 		rsp.Header().Set("Access-Control-Allow-Origin", "*")
 		rsp.Header().Set("Content-Type", "application/json")
 
-		rsp.Write(b)
+		rsp.Write(json_rsp)
 	}
 
 	endpoint := fmt.Sprintf("%s:%d", *host, *port)
