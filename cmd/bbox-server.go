@@ -46,7 +46,7 @@ func main() {
 		scheme := query.Get("scheme")
 		order := query.Get("order")
 		
-		cursor := query.Get("cursor")		
+		// cursor := query.Get("cursor")		
 
 		if bbox == "" {
 			http.Error(rsp, "Missing bbox parameter", http.StatusBadRequest)
