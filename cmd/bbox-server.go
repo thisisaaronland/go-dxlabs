@@ -9,51 +9,27 @@ package main
 
 	* Handle cursors/pagination (from Tile38)
 	* Use code on go-whosonfirst-tile38 (that still needs to be written) to convert Tile38
-	  responses in to something a little friendlier and/or GeoJSON like...
-	  
+	  responses in to something a little friendlier and/or GeoJSON like... (this is WIP)
+
+	For example:
+	* curl 'localhost:8080?bbox=-33.893217,151.165524,-33.840479,151.281223'
+
 */
 
 import (
-       "encoding/json"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/facebookgo/grace/gracehttp"
-	"github.com/whosonfirst/go-whosonfirst-bbox/parser"	
+	"github.com/whosonfirst/go-whosonfirst-bbox/parser"
+	"github.com/whosonfirst/go-whosonfirst-tile38"
+	"github.com/whosonfirst/go-whosonfirst-tile38/whosonfirst"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 )
-
-
-type Tile38Coord struct {
-     Latitude float64 `json:"lat"`
-     Longitude float64 `json:"lon"`     
-}
-
-type Tile38Point struct {
-     ID string `json:"id"`
-     Point Tile38Coord `json:"point"`
-     Fields []interface{} `json:"fields"`
-}
-
-type Tile38Response struct {
-     Ok bool `json:"ok"`
-     Count int `json:"count"`
-     Cursor int `json:"cursor"`
-     Fields []string `json:"fields"`
-     Points []Tile38Point `json:"points"`
-}
-
-type WOFResponse struct {
-     Results []WOFResult `json:"results"`
-     Cursor  int `json:"cursor"`     
-}
-
-type WOFResult struct {
-     WOFID     int64 `json:"wof:id"`
-}
 
 func main() {
 
@@ -75,8 +51,8 @@ func main() {
 		bbox := query.Get("bbox")
 		scheme := query.Get("scheme")
 		order := query.Get("order")
-		
-		// cursor := query.Get("cursor")		
+
+		// cursor := query.Get("cursor")
 
 		if bbox == "" {
 			http.Error(rsp, "Missing bbox parameter", http.StatusBadRequest)
@@ -109,7 +85,7 @@ func main() {
 		swlon := bb.MinX()
 		nelat := bb.MaxY()
 		nelon := bb.MaxX()
-		
+
 		t38_cmd := fmt.Sprintf("INTERSECTS %s POINTS BOUNDS %0.6f %0.6f %0.6f %0.6f", *t38_collection, swlat, swlon, nelat, nelon)
 		t38_url := fmt.Sprintf("http://%s/%s", t38_addr, url.QueryEscape(t38_cmd))
 
@@ -131,7 +107,7 @@ func main() {
 			return
 		}
 
-		var r Tile38Response
+		var r tile38.Tile38Response
 		err = json.Unmarshal(results, &r)
 
 		if err != nil {
@@ -139,20 +115,20 @@ func main() {
 			return
 		}
 
-		wof_results := make([]WOFResult, 0)
+		wof_response, err := whosonfirst.Tile38ResponseToWOFResponse(r)
 
-		for _, p := range r.Points {
-			wof_result := WOFResult{ int64(p.Fields[0].(float64)) }
-			wof_results = append(wof_results, wof_result)
+		if err != nil {
+			http.Error(rsp, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
-		wof_response := WOFResponse{
-			     Cursor: r.Cursor,
-			     Results: wof_results,
+		b, err := json.Marshal(wof_response)
+
+		if err != nil {
+			http.Error(rsp, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
-		b, _ := json.Marshal(wof_response)
-		
 		rsp.Header().Set("Access-Control-Allow-Origin", "*")
 		rsp.Header().Set("Content-Type", "application/json")
 
